@@ -51,7 +51,11 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 error DSCEngine_NeedsMoreThanZero();
+error DSCEngine__TokenAddressesAndPriceFeedAddressesLengthMustBeNonZero();
 error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength();
+error DSCEngine__DscAddressShouldBeNonZero();
+error DSCEngine__ShouldBeAContract();
+error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeNonZero();
 error DSCEngine_TokenNotAllowed(address token);
 error DSCEngine__TransferFailed();
 error DSCEngine__BreaksHealthFactor(uint256 userHealthFactor);
@@ -76,13 +80,31 @@ contract DSCEngine is ReentrancyGuard {
         address[] memory priceFeedAddresses,
         address dscAddress
     ) {
+        if (tokenAddresses.length == 0 || priceFeedAddresses.length == 0) {
+            revert DSCEngine__TokenAddressesAndPriceFeedAddressesLengthMustBeNonZero();
+        }
+
         if (tokenAddresses.length != priceFeedAddresses.length) {
             revert DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength();
         }
 
+        if (dscAddress == address(0)) {
+            revert DSCEngine__DscAddressShouldBeNonZero();
+        }
+
+        // ensure DSC is a contract (not an EOA)
+        if (dscAddress.code.length == 0) {
+            revert DSCEngine__ShouldBeAContract();
+        }
+
         for (uint256 i = 0; i < tokenAddresses.length; i++) {
-            s_priceFeeds[tokenAddresses[i]] = priceFeedAddresses[i];
-            s_collateralTokens.push(tokenAddresses[i]);
+            address token = tokenAddresses[i];
+            address feed = priceFeedAddresses[i];
+            if (token == address(0) || feed == address(0)) {
+                revert DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeNonZero();
+            }
+            s_priceFeeds[token] = feed;
+            s_collateralTokens.push(token);
         }
 
         i_dsc = DecentralizedStableCoin(dscAddress);
@@ -147,7 +169,7 @@ contract DSCEngine is ReentrancyGuard {
         }
     }
 
-    // function redeemCollateralForDsc() external{}
+
 
     function mintDsc(
         uint256 amountDscToMint
@@ -254,7 +276,7 @@ contract DSCEngine is ReentrancyGuard {
         uint256 amountCollateral,
         uint256 amountDscToBurn
     ) external {
-        burnDsc(amountDscToBurn);
+        burnDsc(amountDscToBurn); //first burn the  redeem collateral
         redeemCollateral(tokenCollateralAddress, amountCollateral);
     }
 
@@ -338,7 +360,7 @@ contract DSCEngine is ReentrancyGuard {
     ) private {
         s_DSCMinted[onBehalfOf] -= amountDscToBurn;
 
-        bool success = i_dsc.transferFrom(
+        bool success = i_dsc.transferFrom(    //Engine approved himself from owner and sent himself the money wow 
             dscFrom,
             address(this),
             amountDscToBurn
@@ -350,5 +372,7 @@ contract DSCEngine is ReentrancyGuard {
         i_dsc.burn(amountDscToBurn);
     }
 
-    // function getHealthFactor() external view{}
+    function getHealthFactor(address user) external view returns(uint256 healthFactor){
+       uint256 healthFactor= _healthFactor(user);
+    }
 }
