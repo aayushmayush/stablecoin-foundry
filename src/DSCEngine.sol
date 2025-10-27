@@ -50,7 +50,7 @@ import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {DSCEngineErrors} from "./interfaces/DSCEngineErrors.sol";
-
+import {OracleLib} from "./libraries/OracleLib.sol";
 // error DSCEngine_NeedsMoreThanZero();
 // error DSCEngine__TokenAddressesAndPriceFeedAddressesLengthMustBeNonZero();
 // error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength();
@@ -65,6 +65,7 @@ import {DSCEngineErrors} from "./interfaces/DSCEngineErrors.sol";
 // error DSCEngine__HealthFactorNotImproved();
 
 contract DSCEngine is ReentrancyGuard, DSCEngineErrors {
+    using OracleLib for AggregatorV3Interface;
     mapping(address token => address priceFeed) private s_priceFeeds;
     DecentralizedStableCoin private immutable i_dsc;
     mapping(address user => mapping(address token => uint256 amount))
@@ -184,7 +185,6 @@ contract DSCEngine is ReentrancyGuard, DSCEngineErrors {
         }
     }
 
-
     function _healthFactor(address user) private view returns (uint256) {
         (
             uint256 totalDscMinted,
@@ -229,7 +229,7 @@ contract DSCEngine is ReentrancyGuard, DSCEngineErrors {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(
             s_priceFeeds[token]
         );
-        (, int256 price, , , ) = priceFeed.latestRoundData();
+        (, int256 price, , , ) = priceFeed.staleCheckLatestRoundData();
 
         return ((uint256(price * 1e10) * amount) / 1e18);
     }
@@ -322,7 +322,7 @@ contract DSCEngine is ReentrancyGuard, DSCEngineErrors {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(
             s_priceFeeds[token]
         );
-        (, int256 price, , , ) = priceFeed.latestRoundData();
+        (, int256 price, , , ) = priceFeed.staleCheckLatestRoundData();
         return (usdAmountInWei * 1e18) / (uint256(price) * 1e10);
     }
 
@@ -400,5 +400,50 @@ contract DSCEngine is ReentrancyGuard, DSCEngineErrors {
         if (userHealthFactor < MIN_HEALTH_FACTOR) {
             revert DSCEngine__BreaksHealthFactor(userHealthFactor);
         }
+    }
+
+    function getPrecision() external pure returns (uint256) {
+        return PRECISION;
+    }
+
+    function getCollateralBalanceOfUser(
+        address user,
+        address token
+    ) external view returns (uint256) {
+        return s_collateralDeposited[user][token];
+    }
+
+    function getLiquidationThreshold() external pure returns (uint256) {
+        return LIQUIDATION_THRESHOLD;
+    }
+
+    function getLiquidationBonus() external pure returns (uint256) {
+        return LIQUIDATION_BONUS;
+    }
+
+    function getLiquidationPrecision() external pure returns (uint256) {
+        return LIQUIDATION_PRECISION;
+    }
+
+    function getMinHealthFactor() external pure returns (uint256) {
+        return MIN_HEALTH_FACTOR;
+    }
+
+    function getCollateralTokens() external view returns (address[] memory) {
+        return s_collateralTokens;
+    }
+
+    function getDsc() external view returns (address) {
+        return address(i_dsc);
+    }
+
+    function getCollateralTokenPriceFeed(
+        address token
+    ) external view returns (address) {
+        return s_priceFeeds[token];
+    }
+
+    function getHealthFactor(address user) external view returns (uint256) {
+        return _healthFactor(user);
     }
 }
