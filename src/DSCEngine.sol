@@ -72,7 +72,7 @@ contract DSCEngine is ReentrancyGuard, DSCEngineErrors {
     mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited;
     mapping(address user => uint256 amountDscMinted) private s_DSCMinted;
     address[] private s_collateralTokens;
-    uint256 private constant PRECISION = 100;
+    uint256 private constant PRECISION = 1e18;
     uint256 private constant LIQUIDATION_THRESHOLD = 50;
     uint256 private constant LIQUIDATION_PRECISION = 100;
     uint256 private constant LIQUIDATION_BONUS = 10;
@@ -170,6 +170,16 @@ contract DSCEngine is ReentrancyGuard, DSCEngineErrors {
         return (collateralAdjustedForThreshold * PRECISION) / totalDscMinted;
     }
 
+    //     function _calculateHealthFactor(uint256 totalDscMinted, uint256 collateralValueInUsd)
+    //     internal
+    //     pure
+    //     returns (uint256)
+    // {
+    //     if (totalDscMinted == 0) return type(uint256).max;
+    //     uint256 collateralAdjustedForThreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
+    //     return (collateralAdjustedForThreshold * PRECISION) / totalDscMinted;
+    // }
+
     function _getAccountInformation(address user)
         private
         view
@@ -193,7 +203,7 @@ contract DSCEngine is ReentrancyGuard, DSCEngineErrors {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
         (, int256 price,,,) = priceFeed.staleCheckLatestRoundData();
 
-        return ((uint256(price * 1e10) * amount) / 1e18);
+        return ((uint256(price) * 1e10 * amount) / 1e18);
     }
 
     /*

@@ -121,19 +121,21 @@ contract MyTestDSCEngine is Test, DSCEngineErrors {
     }
 
     function testDepositCollateralAndMintDsc() public {
-        uint256 amountOfDscToMint = dsce.getUSDValue(weth, 10000);
+        uint256 singleCollateralValueMaxDsc = dsce.getUSDValue(weth, 1 ether)/2;
+        console.log("amount of dsc to mint ", singleCollateralValueMaxDsc);
 
         vm.startPrank(aayush);
         ERC20Mock(weth).approve(address(dsce), 1000 ether);
         // vm.expectRevert();
         dsce.depositCollateralAndMintDsc(
             weth,
-            100 ether,
-            amountOfDscToMint 
+            1 ether,
+            singleCollateralValueMaxDsc
         );
         vm.stopPrank();
 
-        console.log(amountOfDscToMint);
         console.log("Here is the balance", dsc.balanceOf(aayush));
     }
 }
+// 1e21 is dsc to mint
+//amount is 2e21 after adjustment its 1e21
