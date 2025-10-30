@@ -24,15 +24,15 @@
 // view & pure functions
 
 pragma solidity ^0.8.18;
+
 import {ERC20Burnable, ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 error DecentralizedStableCoin__MustBeMoreThanZero();
 
 contract DecentralizedStableCoin is ERC20Burnable, Ownable {
-    constructor(
-        address initialOwner
-    ) ERC20("DecentralizedStableCoin", "DSC") Ownable(initialOwner) {}
+    //the owner is going to be engine
+    constructor(address initialOwner) ERC20("DecentralizedStableCoin", "DSC") Ownable(initialOwner) {}
 
     function burn(uint256 _amount) public override onlyOwner {
         if (_amount == 0) {
@@ -41,10 +41,7 @@ contract DecentralizedStableCoin is ERC20Burnable, Ownable {
         super.burn(_amount);
     }
 
-    function mint(
-        address _to,
-        uint256 _amount
-    ) external onlyOwner returns (bool) {
+    function mint(address _to, uint256 _amount) external onlyOwner returns (bool) {
         if (_amount == 0) {
             revert DecentralizedStableCoin__MustBeMoreThanZero();
         }

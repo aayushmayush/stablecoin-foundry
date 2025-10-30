@@ -25,15 +25,10 @@ contract Handler is Test {
         weth = ERC20Mock(collateralTokens[0]);
         wbtc = ERC20Mock(collateralTokens[1]);
 
-        ethUsdPriceFeed = MockV3Aggregator(
-            dsce.getCollateralTokenPriceFeed(address(weth))
-        );
+        ethUsdPriceFeed = MockV3Aggregator(dsce.getCollateralTokenPriceFeed(address(weth)));
     }
 
-    function depositCollateral(
-        uint256 collateralSeed,
-        uint256 amountCollateral
-    ) public {
+    function depositCollateral(uint256 collateralSeed, uint256 amountCollateral) public {
         amountCollateral = bound(amountCollateral, 1, type(uint96).max);
         ERC20Mock collateral = _getCollateralFromSeed(collateralSeed);
 
@@ -46,15 +41,9 @@ contract Handler is Test {
         usersWithCollateralDeposited.push(msg.sender);
     }
 
-    function redeemCollateral(
-        uint256 collateralSeed,
-        uint256 amountCollateral
-    ) public {
+    function redeemCollateral(uint256 collateralSeed, uint256 amountCollateral) public {
         ERC20Mock collateral = _getCollateralFromSeed(collateralSeed);
-        uint256 maxCollateralToRedeem = dsce.getCollateralBalanceOfUser(
-            address(collateral),
-            msg.sender
-        );
+        uint256 maxCollateralToRedeem = dsce.getCollateralBalanceOfUser(address(collateral), msg.sender);
 
         amountCollateral = bound(amountCollateral, 0, maxCollateralToRedeem);
         if (amountCollateral == 0) {
@@ -67,11 +56,8 @@ contract Handler is Test {
         if (usersWithCollateralDeposited.length == 0) {
             return;
         }
-        address sender = usersWithCollateralDeposited[
-            addressSeed % usersWithCollateralDeposited.length
-        ];
-        (uint256 totalDscMinted, uint256 collateralValueInUsd) = dsce
-            .getAccountInformation(msg.sender);
+        address sender = usersWithCollateralDeposited[addressSeed % usersWithCollateralDeposited.length];
+        (uint256 totalDscMinted, uint256 collateralValueInUsd) = dsce.getAccountInformation(msg.sender);
 
         uint256 maxDscToMint = (collateralValueInUsd / 2) - totalDscMinted;
         if (maxDscToMint < 0) {
@@ -95,9 +81,7 @@ contract Handler is Test {
     //     ethUsdPriceFeed.updateAnswer(newPriceInt);
     // }
 
-    function _getCollateralFromSeed(
-        uint256 collateralSeed
-    ) private view returns (ERC20Mock) {
+    function _getCollateralFromSeed(uint256 collateralSeed) private view returns (ERC20Mock) {
         if (collateralSeed % 2 == 0) {
             return weth;
         }
